@@ -3,30 +3,17 @@ import os
 from werkzeug.utils import secure_filename
 import numpy as np # linear algebra
 import pandas as pd
-import torch
-import torchvision
-from torchvision import transforms
-from tqdm import tqdm
-import shutil 
-
-
-class ImageFolderWithPaths(torchvision.datasets.ImageFolder):
-    def __getitem__(self, index):
-        original_tuple = super(ImageFolderWithPaths, self).__getitem__(index)
-        path = self.imgs[index][0]
-        tuple_with_path = (original_tuple + (path,))
-        return tuple_with_path
-
-ALLOWED_EXTENSIONS=set(['jpg', 'jpeg'])
-
-def allowed_file(filename):
-    return '.' in filename and filename.lower().rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+import re
+import scipy
+import pickle
+#import collections
+from sklearn.ensemble import GradientBoostingClassifier
 
 
 app = Flask(__name__)
 
 
-model = torch.load("./static/model_pd.h5")
+model = torch.load("./model_DM01.pickle")
 
 UPLOAD_FOLDER = './uploads/unknown'
 data_root = './uploads'
@@ -37,28 +24,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def get_prediction():
      
-    val_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])  
-    test_dataset = ImageFolderWithPaths(test_dir, val_transforms)
-    #test_dataset = torchvision.datasets.ImageFolder(test_dir, val_transforms)
 
-    test_dataloader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=2, shuffle=False, num_workers=0)
-    model.eval()
 
-    test_predictions = []
-    test_img_paths = []
-    for inputs, labels, paths in tqdm(test_dataloader):
-        #inputs = inputs.to(device)
-        #labels = labels.to(device)
-        with torch.set_grad_enabled(False):
-            preds = model(inputs)
-        test_predictions.append(
-            torch.nn.functional.softmax(preds, dim=1)[:,1].data.cpu().numpy())
-        test_img_paths.extend(paths)
     
     test_predictions = np.concatenate(test_predictions)
 
@@ -85,14 +52,14 @@ def upload_file():
     return '''
     <!doctype html>
     <head>
-    <title> PORNO DETECT SERVER</title>
+    <title> MILK DETECT SERVER</title>
     </head>
     <body>
-    <h1> Porno detect project :</h1>
+    <h1> Milk detect project :</h1>
     <p align=center><img src="\static\stop_p.png"
         alt="Town trip"></p>
-    <p> Chek foto for porno.
-    Server detect porno.</p>    
+    <p> Chek products for milk.
+    Server detect milk.</p>    
     <title>Upload new File</title>
     <h1>Upload new File</h1>
     <form action="" method=post enctype=multipart/form-data>
@@ -108,6 +75,7 @@ from flask import send_from_directory
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     print(UPLOAD_FOLDER)
+	
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 
